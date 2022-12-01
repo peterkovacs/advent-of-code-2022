@@ -1,4 +1,5 @@
 import ArgumentParser
+import Algorithms
 
 struct Day1: ParsableCommand {
     
@@ -14,6 +15,6 @@ struct Day1: ParsableCommand {
 
         print("Part 1:", calories.max() as Any)
 
-        print("Part 2:", calories.sorted().reversed()[0..<3].reduce(0, +))
+        print("Part 2:", calories.max(count: 3).reduce(0, +))
     }
 }
