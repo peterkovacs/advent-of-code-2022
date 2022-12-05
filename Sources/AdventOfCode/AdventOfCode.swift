@@ -4,6 +4,10 @@ extension ParsableCommand {
     var stdin: AnyIterator<String> {
         .init { readLine() }
     }
+    
+    var allInput: String {
+        AnyIterator { readLine(strippingNewline: false) }.joined()
+    }
 }
 
 @main
