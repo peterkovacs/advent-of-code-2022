@@ -69,6 +69,43 @@ struct Day12: ParsableCommand {
             u = prev[u!]
         }
         
+        return result.reversed().dropLast()
+    }
+    
+    // run backwards to the min 'a' point
+    func dijkstra2(grid: Grid<Int>, start: Coordinate, end: Coordinate) -> [Coordinate] {
+        var q = Set<Coordinate>(grid.indices)
+        var prev = [Coordinate: Coordinate]()
+        var dist = [Coordinate: Int]()
+        var heap = Heap<Node>([.init(coordinate: start, cost: 0)])
+        dist[start] = 0
+        
+        while true {
+            guard let u = heap.popMin() else { break }
+            guard dist[u.coordinate] == u.cost else { continue }
+            q.remove(u.coordinate)
+            
+            let neighbors = u.coordinate.neighbors(limitedBy: grid.maxX, and: grid.maxY)
+                .filter { grid[$0] + 1 >= grid[u.coordinate] }
+                .filter { q.contains($0) }
+            
+            for v in neighbors {
+                let alt = dist[u.coordinate].map { $0 + 1 } ?? Int.max
+                if alt < dist[v] ?? Int.max {
+                    heap.insert(.init(coordinate: v, cost: alt))
+                    dist[v] = alt
+                    prev[v] = u.coordinate
+                }
+            }
+        }
+        
+        var (u, _) = dist.filter { grid[$0.key] == 0 }.min { $0.value < $1.value }! as (Coordinate?, Int)
+        var result = [Coordinate]()
+        while u != nil {
+            result.append(u!)
+            u = prev[u!]
+        }
+        
         return result.dropLast()
     }
     
@@ -92,11 +129,11 @@ struct Day12: ParsableCommand {
         
         var g = grid.map(\.description)
         zip(part1, part1.dropFirst()).forEach {
-            switch ($0.1).direction(to: $0.0) {
-            case \.up: g[$0.0] = "^"
-            case \.down: g[$0.0] = "v"
-            case \.left: g[$0.0] = "<"
-            case \.right: g[$0.0] = ">"
+            switch ($0.0).direction(to: $0.1) {
+            case \.up: g[$0.1] = "^"
+            case \.down: g[$0.1] = "v"
+            case \.left: g[$0.1] = "<"
+            case \.right: g[$0.1] = ">"
             default: fatalError()
             }
         }
@@ -104,8 +141,7 @@ struct Day12: ParsableCommand {
             
         print("part 1", part1.count)
         
-        let part2 = grid.indices.filter { grid[$0] == .normal(0) }.compactMap {
-            dijkstra(
+        let part2 = dijkstra2(
                 grid: grid.map {
                     switch $0 {
                     case .start: return 0
@@ -113,11 +149,22 @@ struct Day12: ParsableCommand {
                     case .normal(let v): return v
                     }
                 },
-                start: $0,
-                end: end
-            )?.count
-        }.min()!
-        
-        print("part 2", part2)
+                start: end,
+                end: start
+            )
+
+        var g2 = grid.map(\.description)
+        zip(part2, part2.dropFirst()).forEach {
+            switch ($0.0).direction(to: $0.1) {
+            case \.up: g2[$0.1] = "^"
+            case \.down: g2[$0.1] = "v"
+            case \.left: g2[$0.1] = "<"
+            case \.right: g2[$0.1] = ">"
+            default: fatalError()
+            }
+        }
+        print(g2)
+
+        print("part 2", part2.count)
     }
 }
