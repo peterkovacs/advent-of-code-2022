@@ -66,6 +66,11 @@ public struct Coordinate {
             return self.y > to.y ? \Coordinate.up : \Coordinate.down
         }
     }
+    
+    /// Manhattan Distance
+    public func distance(to: Coordinate) -> Int {
+        return abs(self.x - to.x) + abs(self.y - to.y)
+    }
 
     public init( x: Int, y: Int ) {
         self.x = x
