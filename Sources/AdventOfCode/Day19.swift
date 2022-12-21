@@ -4,6 +4,23 @@ import Collections
 
 // Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 18 clay. Each geode robot costs 4 ore and 8 obsidian.
 
+import Foundation
+extension Collection {
+    func parallelMap<R>(_ transform: @escaping (Element) -> R) -> [R] {
+        var res: [R?] = .init(repeating: nil, count: count)
+
+        let lock = NSRecursiveLock()
+        DispatchQueue.concurrentPerform(iterations: count) { i in
+            let result = transform(self[index(startIndex, offsetBy: i)])
+            lock.lock()
+            res[i] = result
+            lock.unlock()
+        }
+
+        return res.map({ $0! })
+    }
+}
+
 struct Blueprint: Hashable {
     static func == (lhs: Blueprint, rhs: Blueprint) -> Bool {
         lhs.id == rhs.id
@@ -157,8 +174,6 @@ fileprivate func bfs(inventory: Inventory, minutes: Int) -> Inventory {
         let state = queue.popMax()!
         var (inventory, minutes) = (state.inventory, state.minutes)
         
-        guard visited.insert(inventory).inserted else { continue }
-        
         if minutes > 1 {
 
             // Does this blueprint have a hope of beating the current max even if we magically made a geodeRobot from here to the end?
@@ -166,39 +181,46 @@ fileprivate func bfs(inventory: Inventory, minutes: Int) -> Inventory {
                 (0..<minutes).reduce(inventory.geode) { $0 + inventory.geodeRobot + $1 } > max.geode
             )
             
-            guard hasHopeOfWinning else {
-                inventory.tick()
-                queue.insert(.init(inventory: inventory, minutes: minutes - 1))
-                continue
-            }
+            guard hasHopeOfWinning else { continue }
 
             do {
                 var geode = inventory
                 if geode.buildGeode() {
-                    queue.insert(.init(inventory: geode, minutes: minutes - 1))
+                    if visited.insert(geode).inserted {
+                        queue.insert(.init(inventory: geode, minutes: minutes - 1))
+                    }
+                    continue // if we can build a geodeRobot, don't bother trying any other paths.
                 }
             }
             do {
                 var obsidian = inventory
                 if obsidian.obsidianRobot < inventory.blueprint.geode.obsidian, obsidian.buildObsidian() {
-                    queue.insert(.init(inventory: obsidian, minutes: minutes - 1))
+                    if visited.insert(obsidian).inserted {
+                        queue.insert(.init(inventory: obsidian, minutes: minutes - 1))
+                    }
                 }
             }
             do {
                 var clay = inventory
                 if clay.clayRobot < inventory.blueprint.obsidian.clay, clay.buildClay() {
-                    queue.insert(.init(inventory: clay, minutes: minutes - 1))
+                    if visited.insert(clay).inserted {
+                        queue.insert(.init(inventory: clay, minutes: minutes - 1))
+                    }
                 }
             }
             do {
                 var ore = inventory
                 if ore.oreRobot < oreLimit, ore.buildOre() {
-                    queue.insert(.init(inventory: ore, minutes: minutes - 1))
+                    if visited.insert(ore).inserted {
+                        queue.insert(.init(inventory: ore, minutes: minutes - 1))
+                    }
                 }
             }
             
             inventory.tick()
-            queue.insert(.init(inventory: inventory, minutes: minutes - 1))
+            if visited.insert(inventory).inserted {
+                queue.insert(.init(inventory: inventory, minutes: minutes - 1))
+            }
         } else {
             inventory.tick()
         }
@@ -222,11 +244,11 @@ struct Day19: ParsableCommand {
         }
         .parse(allInput)
         
-        let part1 = blueprints.map { bfs(inventory: Inventory(blueprint: $0), minutes: 24) }.map { $0.blueprint.id * $0.geode }.reduce(0, +)
+        let part1 = blueprints.parallelMap { bfs(inventory: Inventory(blueprint: $0), minutes: 24) }.map { $0.blueprint.id * $0.geode }.reduce(0, +)
         print("part 1", part1)
         
         
-        let part2 = blueprints[0..<3].map { bfs(inventory: Inventory(blueprint: $0), minutes: 32).geode }.reduce(1, *)
+        let part2 = blueprints[0..<3].parallelMap { bfs(inventory: Inventory(blueprint: $0), minutes: 32).geode }.reduce(1, *)
         print("part 2", part2)
 
     }
