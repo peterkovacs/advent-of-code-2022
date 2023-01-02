@@ -59,6 +59,13 @@ public struct InfiniteGrid<T>: Sequence {
         maxY = Swift.max(maxY, c.y + 1)
     }
     
+    mutating public func setBounds(minX: Int, maxX: Int, minY: Int, maxY: Int) {
+        self.minX = minX
+        self.maxX = maxX
+        self.minY = minY
+        self.maxY = maxY
+    }
+    
     public struct CoordinateIterator: IteratorProtocol, Sequence {
         let minX, maxX, minY, maxY: Int
         var coordinate: Coordinate
