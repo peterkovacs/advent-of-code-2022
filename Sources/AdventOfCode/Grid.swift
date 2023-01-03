@@ -338,3 +338,16 @@ extension Coordinate: Equatable {
         return lhs.y == rhs.y && lhs.x == rhs.x
     }
 }
+
+extension Grid: Equatable where Element: Equatable {
+    
+}
+
+
+extension Grid: Hashable where Element: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        for i in self {
+            hasher.combine(i)
+        }
+    }
+}
